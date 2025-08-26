@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.Design;
-
-namespace Poker;
+﻿namespace Poker;
 
 public class Table
 {
@@ -177,7 +175,7 @@ public class Table
         if (values.Count < 5)
             return 0;
         if (new[] { 14, 2, 3, 4, 5 }.All(values.Contains)) 
-            return 5005;
+            return 5000005;
         var inRow = 0;
         var highest = 0;
         for (var i = 1; i < values.Count; i++)
