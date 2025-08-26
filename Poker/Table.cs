@@ -1,4 +1,6 @@
-﻿namespace Poker;
+﻿using System.ComponentModel.Design;
+
+namespace Poker;
 
 public class Table
 {
@@ -46,47 +48,61 @@ public class Table
     public string CheckHand(Player player)
     {
         var hand = this.cards.Concat(player.cards).ToList();
-        
-        if (IsRoyalFlush(hand))
+
+        var x = IsRoyalFlush(hand);
+        if (x!=0)
         {
             return "Royal flush";
         }
-        if (IsStraightFlush(hand))
+        x = IsStraightFlush(hand);
+        if (x!=0) 
         {
             return "Straight flush";
         }
-        if (IsFourOfAKind(hand))
+        x = IsFourOfAKind(hand);
+        if (x!=0)
         {
             return "Four of a kind";
         }
-        if (IsFullHouse(hand))
+        x = IsFullHouse(hand);
+        if (x!=0)
         {
             return "Full house";
         }
-        if (IsFlush(hand))
+        x = IsFlush(hand);
+        if (x!=0)
         {
             return "Flush";
         }
-        if (IsStraight(hand))
+        x = IsStraight(hand);
+        if (x!=0)
         {
             return "Straight";
         }
-        if (IsThreeOfAKind(hand))
+        x = IsThreeOfAKind(hand);
+        if (x!=0)
         {
             return "Three of a kind";
         }
-        if (IsTwoPair(hand))
+        x = IsTwoPair(hand);
+        if (x!=0)
         {
             return "Two pair";
         }
-        if (IsPair(hand))
+        x = IsPair(hand);
+        if (x!=0)
         {
             return "Pair";
         }
-        return "High card";
+        x=IsHighCard(hand);
+        if (x != 0)
+        {
+            return "High card";
+        }
+        return "Error";
     }
     
-    public bool IsRoyalFlush(List<Card> hand)
+    public int IsRoyalFlush(List<Card> hand)
     {
         var royalValues = new HashSet<int> { 10, 11, 12, 13, 14 };
         var groups = hand.GroupBy(c => c.Suit);
@@ -95,91 +111,152 @@ public class Table
             var values = new HashSet<int>(group.Select(c => c.Value));
             if (royalValues.IsSubsetOf(values))
             {
-                return true;
+                return 10000000;
             }
         }
-        return false;
+        return 0;
     }
     
-    public bool IsStraightFlush(List<Card> hand)
+    public int IsStraightFlush(List<Card> hand)
     {
         var groups = hand.GroupBy(c => c.Suit);
         foreach (var group in groups)
         {
-            if (IsStraight(group.ToList())) return true;
+            var x = IsStraight(group.ToList());
+            if (x!=0) return 4000000 + x;
         }
-        return false;
+        return 0;
     }
     
-    public bool IsFourOfAKind(List<Card> hand)
-    {
-        return hand.GroupBy(c => c.Value).Any(g => g.Count() == 4);
-    }
-    
-    public bool IsFullHouse(List<Card> hand)
+    public int IsFourOfAKind(List<Card> hand)
     {
         var groups = hand.GroupBy(c => c.Value);
-        var threeCount = 0;
-        var twoCount = 0;
+        var four = groups.FirstOrDefault(g => g.Count() == 4);
+        if (four == null)
+            return 0;
+        var fourValue = four.Key;
+        var kicker = groups.Where(g => g.Count() != 4).Max(g => g.Key);
+        return 8000000 + 50*fourValue + kicker;
+    }
+    
+    public int IsFullHouse(List<Card> hand)
+    {
+        var groups = hand.GroupBy(c => c.Value);
+        var threeValue = 0;
+        var pairValue = 0;
         foreach (var group in groups)
         {
-            if (group.Count() == 3) threeCount++;
-            else if (group.Count() == 2) twoCount++;
+            if (group.Count() == 3)
+            {
+                if(group.Key>threeValue) 
+                    threeValue=group.Key;
+            }
+            if (group.Count() >= 2)
+            {
+                if(group.Key>pairValue && group.Key!=threeValue) 
+                    pairValue=group.Key;
+            }
         }
-        return threeCount>0 && threeCount+twoCount>1;
+        if (threeValue==0 || pairValue==0) 
+            return 0;
+        return 7000000 + 50*threeValue + pairValue;
     }
-    
-    public bool IsFlush(List<Card> hand)
+
+    public int IsFlush(List<Card> hand)
     {
-        return hand.GroupBy(c => c.Suit).Any(g => g.Count() > 4);
+        var flush = hand.GroupBy(c => c.Suit)
+            .OrderByDescending(g => g.Count())
+            .FirstOrDefault(g => g.Count() > 4);
+        if (flush == null) return 0;
+        return 6000000+IsHighCard(flush.ToList());
     }
     
-    public bool IsStraight(List<Card> hand)
+    public int IsStraight(List<Card> hand)
     {
         var values = new SortedSet<int>(hand.Select(c => c.Value)).ToList();
         if (values.Count < 5)
-            return false;
+            return 0;
         if (new[] { 14, 2, 3, 4, 5 }.All(values.Contains)) 
-            return true;
+            return 5005;
         var inRow = 0;
+        var highest = 0;
         for (var i = 1; i < values.Count; i++)
         {
             if (values[i - 1] + 1 == values[i])
                 inRow++;
             else
                 inRow = 0;
+            
+            if (inRow >= 4)
+                highest= values[i];
         }
-        return inRow == 4;
+        if (highest > 0)
+            return 5000000+highest;
+        return 0;
     }
     
-    public bool IsThreeOfAKind(List<Card> hand)
+    public int IsThreeOfAKind(List<Card> hand)
     {
         var groups = hand.GroupBy(c => c.Value);
+        var threeValue = 0;
         foreach (var group in groups)
         {
-            if (group.Count() == 3) return true;
+            if (group.Count() == 3 && group.Key>threeValue) threeValue = group.Key;
         }
-        return false;
+        if (threeValue == 0)
+            return 0;
+        var kickers = hand.Where(g => g.Value != threeValue)
+            .OrderByDescending(c => c.Value)
+            .Take(2)
+            .ToList();
+        return 4000000+10000*threeValue+IsHighCard(kickers);
+    }
+
+    public int IsTwoPair(List<Card> hand)
+    {
+        var groups = hand.GroupBy(c => c.Value);
+        groups = groups.OrderByDescending(g => g.Key).ToList();
+        var pairHigh = 0;
+        var pairLow = 0;
+        foreach (var group in groups)
+        {
+            if (group.Count() == 2 && pairHigh == 0) pairHigh = group.Key;
+            else if (group.Count() == 2) pairLow = group.Key;
+        }
+        if (pairHigh == 0 || pairLow == 0) return 0;
+        return 3000000 + 10000 * pairHigh + 1000 * pairLow + IsHighCard(
+            hand.Where(g => g.Value != pairHigh && g.Value != pairLow)
+                .OrderByDescending(c => c.Value)
+                .Take(1)
+                .ToList()
+        );
     }
     
-    public bool IsTwoPair(List<Card> hand)
+    public int IsPair(List<Card> hand)
     {
         var groups = hand.GroupBy(c => c.Value);
-        var pairCount = 0;
-        foreach (var group in groups)
-        {
-            if (group.Count() == 2) pairCount++;
-        }
-        return pairCount > 1;
+        groups = groups.OrderByDescending(g => g.Key).ToList();
+        var pairHigh = groups.FirstOrDefault(g => g.Count() == 2)?.Key ?? 0;
+        if (pairHigh == 0) return 0;
+        return 2000000 + 10000 * pairHigh + IsHighCard(
+            hand.Where(g => g.Value != pairHigh)
+                .OrderByDescending(c => c.Value)
+                .Take(3)
+                .ToList()
+        );
     }
     
-    public bool IsPair(List<Card> hand)
+    public int IsHighCard(List<Card> hand)
     {
-        var groups = hand.GroupBy(c => c.Value);
-        foreach (var group in groups)
+        var score = 0;
+        var multiplier = 1;
+        var orderedHand = hand.OrderByDescending(c => c.Value).Take(5);
+        orderedHand = orderedHand.OrderBy(c => c.Value);
+        foreach (var card in orderedHand)
         {
-            if (group.Count() == 2) return true;
+            score += card.Value * multiplier;
+            multiplier *= 10;
         }
-        return false;
+        return score;
     }
 }
