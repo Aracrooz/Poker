@@ -24,7 +24,6 @@ public class Table
         Console.ReadLine();
         River();
         ShowTableCards();
-        Console.ReadLine();
     }
 
     public void ShowTableCards()
