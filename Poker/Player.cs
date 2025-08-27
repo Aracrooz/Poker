@@ -17,18 +17,4 @@ public class Player
         Console.WriteLine(cards[0].Value+" "+cards[0].Suit+"\n"+cards[1].Value+" "+cards[1].Suit);
     }
     
-    public void Check()
-    {
-        
-    }
-
-    public void Call()
-    {
-        
-    }
-    
-    public void Fold()
-    {
-        
-    }
 }

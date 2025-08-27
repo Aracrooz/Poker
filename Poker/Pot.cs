@@ -9,4 +9,9 @@ public class Pot : Table
     {
         Value = value;
     }
+
+    public void Raise(int amount)
+    {
+        Value += amount;
+    }
 }

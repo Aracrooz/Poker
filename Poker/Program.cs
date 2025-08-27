@@ -5,4 +5,6 @@ using Poker;
 Table table = new Table();
 table.AddPlayer(new Player("Marek"));
 table.AddPlayer(new Player("Szparek"));
+table.AddPlayer(new Player("Darek"));
+table.PlayRound();
 table.PlayRound();

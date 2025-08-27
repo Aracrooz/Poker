@@ -2,13 +2,16 @@
 
 public class Table
 {
-    public List<Player> players = new(6);
+    public List<Player> players = new(5);
     private Deck deck;
     public List<Card> cards = new(5);
-
+    public Pot[] pots;
+    private int _minRaise;
     public Table()
     {
         deck = new Deck();
+        pots = new Pot[5];
+        _minRaise = 2;
     }
 
     public void PlayRound()
@@ -24,6 +27,30 @@ public class Table
         Console.ReadLine();
         River();
         ShowTableCards();
+        Console.ReadLine();
+    }
+    
+    public void Check(Player player)
+    {
+        
+    }
+
+    public void Call(Player player)
+    {
+        
+    }
+    
+    public void Fold(Player player)
+    {
+        
+    }
+
+    public void Raise(Player player, int amount)
+    {
+        if (amount < _minRaise) 
+            return;
+        pots[0].Raise(amount);
+        _minRaise = amount;
     }
 
     public void ShowTableCards()
@@ -44,11 +71,15 @@ public class Table
 
     public void AddPlayer(Player player)
     {
+        if (players.Count > 4)
+            return;
         players.Add(player);
     }
     
     public void Deal()
     {
+        cards.Clear();
+        deck.Shuffle();
         foreach (var player in players)
         {
             player.cards.Clear();

@@ -13,7 +13,8 @@ public class Deck
 
     public void Shuffle()
     {
-        var deck = _unshuffledDeck;
+        _shuffledDeck.Clear();
+        var deck = new List<Card>(_unshuffledDeck);
         var random = new Random();
         var n = 52;
         for (var i = 0; i < 52; i++)
