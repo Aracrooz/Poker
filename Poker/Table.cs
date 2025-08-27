@@ -3,13 +3,45 @@
 public class Table
 {
     public List<Player> players = new(6);
+    private Deck deck;
     public List<Card> cards = new(5);
-    public Deck deck;
 
     public Table()
     {
         deck = new Deck();
     }
+
+    public void PlayRound()
+    {
+        Deal();
+        ShowTableCards();
+        Console.ReadLine();
+        Flop();
+        ShowTableCards();
+        Console.ReadLine();
+        Turn();
+        ShowTableCards();
+        Console.ReadLine();
+        River();
+        ShowTableCards();
+        Console.ReadLine();
+    }
+
+    public void ShowTableCards()
+    {
+        Console.Clear();
+        foreach (var player in players)
+        {
+            player.SeeCards();
+            var score = CheckScore(player); 
+            Console.WriteLine(WhatHand(score) + "\n" + score + "\n");
+        }
+        foreach (var card in cards)
+        {
+            Console.WriteLine(card.Value+" "+card.Suit);
+        }
+    }
+    
 
     public void AddPlayer(Player player)
     {
@@ -18,11 +50,15 @@ public class Table
     
     public void Deal()
     {
+        foreach (var player in players)
+        {
+            player.cards.Clear();
+        }
         for (var i = 0; i < 2; i++)
         {
-            foreach (var t in players)
+            foreach (var p in players)
             {
-                t.cards.Add(deck.Draw());
+                p.cards.Add(deck.Draw());
             }
         }
     }
@@ -42,62 +78,81 @@ public class Table
     {
         cards.Add(deck.Draw());
     }
+
+    public string WhatHand(int x)
+    {
+        if (x >= 10000000)
+            return "Royal flush";
+        if (x >= 9000000)
+            return "Straight flush";
+        if (x >= 8000000)
+            return "Four of a kind";
+        if (x >= 7000000)
+            return "Full house";
+        if (x >= 6000000)
+            return "Flush";
+        if (x >= 5000000)
+            return "Straight";
+        if (x >= 4000000)
+            return "Three of a kind";
+        if (x >= 3000000)
+            return "Two pair";
+        if (x >= 2000000)
+            return "Pair";
+        return "High card";
+    }
     
-    public string CheckHand(Player player)
+    public int CheckScore(Player player)
     {
         var hand = this.cards.Concat(player.cards).ToList();
 
         var x = IsRoyalFlush(hand);
         if (x!=0)
         {
-            return "Royal flush";
+            return x;
         }
         x = IsStraightFlush(hand);
         if (x!=0) 
         {
-            return "Straight flush";
+            return x;
         }
         x = IsFourOfAKind(hand);
         if (x!=0)
         {
-            return "Four of a kind";
+            return x;
         }
         x = IsFullHouse(hand);
         if (x!=0)
         {
-            return "Full house";
+            return x;
         }
         x = IsFlush(hand);
         if (x!=0)
         {
-            return "Flush";
+            return x;
         }
         x = IsStraight(hand);
         if (x!=0)
         {
-            return "Straight";
+            return x;
         }
         x = IsThreeOfAKind(hand);
         if (x!=0)
         {
-            return "Three of a kind";
+            return x;
         }
         x = IsTwoPair(hand);
         if (x!=0)
         {
-            return "Two pair";
+            return x;
         }
         x = IsPair(hand);
         if (x!=0)
         {
-            return "Pair";
+            return x;
         }
         x=IsHighCard(hand);
-        if (x != 0)
-        {
-            return "High card";
-        }
-        return "Error";
+        return x;
     }
     
     public int IsRoyalFlush(List<Card> hand)

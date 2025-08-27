@@ -24,7 +24,8 @@ public class Deck
             deck.Remove(deck[k]);
         }
     }
-    public void InitDeck()
+
+    private void InitDeck()
     {
         char[] suits = { 'd', 'h', 's', 'c' };
         for (var value = 2; value <= 14; value++)
