@@ -4,6 +4,7 @@ public class Player
 {
     public string name;
     public List<Card> cards;
+    public int balance;
 
     public Player(string name)
     {

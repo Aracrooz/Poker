@@ -5,13 +5,10 @@ public class Table
     public List<Player> players = new(5);
     private Deck deck;
     public List<Card> cards = new(5);
-    public Pot[] pots;
-    private int _minRaise;
+    private int _smallBlind = 1;
     public Table()
     {
         deck = new Deck();
-        pots = new Pot[5];
-        _minRaise = 2;
     }
 
     public void PlayRound()
@@ -28,6 +25,28 @@ public class Table
         River();
         ShowTableCards();
         Console.ReadLine();
+    }
+
+    private void BettingRound()
+    {
+        foreach (var player in players)
+        {
+            Console.WriteLine(player.name + ": ");
+            var decision = Console.ReadLine();
+            switch (decision)
+            {
+                case "check":
+                    continue;
+                case "fold":
+                    continue;
+                case "call":
+                    continue;
+                case "raise":
+                    continue;
+                default:
+                    continue;
+            }
+        }
     }
     
     public void Check(Player player)
@@ -47,10 +66,7 @@ public class Table
 
     public void Raise(Player player, int amount)
     {
-        if (amount < _minRaise) 
-            return;
-        pots[0].Raise(amount);
-        _minRaise = amount;
+        
     }
 
     public void ShowTableCards()
