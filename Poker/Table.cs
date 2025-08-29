@@ -2,17 +2,51 @@
 
 public class Table
 {
+    private enum PlayerRole
+    {
+        None,
+        Dealer,
+        SmallBlind,
+        BigBlind
+    }
+
+    private enum PlayerStatuses
+    {
+        Folded,
+        Raised,
+        ToCall,
+        Checked,
+        Called,
+        AllIn
+    }
+    
     public List<Player> players = new(5);
     private Deck deck;
     public List<Card> cards = new(5);
-    private int _smallBlind = 1;
-    public Table()
+    public int buyIn;
+    public int smallBlind;
+    public int dealerIndex;
+    public int smallBlindIndex;
+    public int bigBlindIndex;
+    public int minRaise;
+    public int toCall;
+    Dictionary<Player, int> bets = new();
+    Dictionary<Player, PlayerRole> playerRoles = new();
+    Dictionary<Player, PlayerStatuses> playerStatuses = new();
+    public Table(int buyIn)
     {
         deck = new Deck();
+        this.buyIn = buyIn;
+        smallBlind = buyIn/100/2;
+        minRaise = smallBlind*2;
+        toCall = smallBlind*2;
     }
 
     public void PlayRound()
     {
+        ResetTable();
+        if (players.Count < 2)
+            return;
         Deal();
         ShowTableCards();
         Console.ReadLine();
@@ -25,50 +59,111 @@ public class Table
         River();
         ShowTableCards();
         Console.ReadLine();
+        
     }
 
     private void BettingRound()
     {
-        foreach (var player in players)
+        for (var i = 0; i < players.Count; i++)
         {
+            var player = players[i];
+            if (playerStatuses[player] == PlayerStatuses.Folded || playerStatuses[player] == PlayerStatuses.AllIn)
+                 continue;
+            
             Console.WriteLine(player.name + ": ");
             var decision = Console.ReadLine();
+            
             switch (decision)
             {
                 case "check":
                     continue;
                 case "fold":
+                    playerStatuses[player] = PlayerStatuses.Folded;
                     continue;
                 case "call":
+                    if (player.tableBalance <= toCall)
+                    {
+                        bets[player] += player.tableBalance;
+                        player.tableBalance = 0;
+                        playerStatuses[player] = PlayerStatuses.AllIn;
+                    }
+                    else
+                    {
+                        bets[player] += toCall;
+                        player.tableBalance -= toCall;
+                        playerStatuses[player] = PlayerStatuses.Called;
+                    }
                     continue;
                 case "raise":
+                    Console.WriteLine("Amount: ");
+                    var input = Convert.ToInt32(Console.ReadLine());
+                    
+                    if (input > player.tableBalance)
+                        continue;
+                    var amount = input >= minRaise ? input : minRaise;
+                    
+                    bets[player] += amount;
+                    player.tableBalance -= amount;
+                    toCall = bets[player];
+                    
+                    if(player.tableBalance == 0)
+                        playerStatuses[player] = PlayerStatuses.AllIn;
+                    else
+                        playerStatuses[player] = PlayerStatuses.Raised;
+                    foreach (var p in players)
+                    {
+                        if (p != player && playerStatuses[p] != PlayerStatuses.Folded)
+                        {
+                            playerStatuses[p] = PlayerStatuses.ToCall;
+                        }
+                    }
                     continue;
                 default:
                     continue;
             }
         }
     }
+
+    public void Reindex()
+    {
+        dealerIndex = NextIndex(dealerIndex);
+        if (players.Count == 2)
+        {
+            smallBlindIndex = dealerIndex;
+            bigBlindIndex = NextIndex(dealerIndex);
+        }
+        else if (players.Count >= 3)
+        {
+            smallBlindIndex = NextIndex(dealerIndex);
+            bigBlindIndex = NextIndex(smallBlindIndex);
+        }
+    }
     
-    public void Check(Player player)
+    private int NextIndex(int currentIndex)
     {
-        
+        return (currentIndex + 1) % players.Count;
     }
 
-    public void Call(Player player)
+    public void ResetTable()
     {
-        
+        Reindex();
+        bets.Clear();
+        playerRoles.Clear();
+        foreach (var player in players)
+        {
+            bets.Add(player, 0);
+        }
+        for (var i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            playerRoles[player] =
+                i == dealerIndex ? PlayerRole.Dealer :
+                i == smallBlindIndex ? PlayerRole.SmallBlind :
+                i == bigBlindIndex ? PlayerRole.BigBlind :
+                PlayerRole.None;
+        }
     }
     
-    public void Fold(Player player)
-    {
-        
-    }
-
-    public void Raise(Player player, int amount)
-    {
-        
-    }
-
     public void ShowTableCards()
     {
         Console.Clear();
@@ -90,6 +185,7 @@ public class Table
         if (players.Count > 4)
             return;
         players.Add(player);
+        bets.Add(player, 0);
     }
     
     public void Deal()
