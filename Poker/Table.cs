@@ -48,35 +48,108 @@ public class Table
         if (players.Count < 2)
             return;
         ShowTableCards();
-        BettingRound(true);
+        var x =BettingRound(true);
         
         Flop();
         ShowTableCards();
-        BettingRound(false);
+        if (x)
+        {
+            x = BettingRound(false);
+        }
         
         Turn();
         ShowTableCards();
-        BettingRound(false);
+        if (x)
+        {
+            x = BettingRound(false);
+        }
         
         River();
         ShowTableCards();
-        BettingRound(false);
-        
+        if (x)
+        {
+            BettingRound(false);
+        }
+
+        ResolveRound();
+
     }
 
-    private void BettingRound(bool preflop)
+    private Dictionary<Player, int> ResolveRound()
+    {
+        Dictionary<Player, int> winningsByPlayer = new();
+        Dictionary<Player, int> playerScores = players.Where(p => playerStatuses[p] != PlayerStatuses.Folded).ToDictionary(p => p, CheckScore);
+        
+        var levels = handBets.Values.Where(v => v > 0).Distinct().OrderBy(v => v).ToList();
+        int prev = 0;
+
+        foreach (var level in levels)
+        {
+            int contribution = level - prev;
+            
+            var contributors = players.Where(p => handBets[p] >= level);
+            int potAmount = contributors.Count() * contribution;
+
+            var eligible = players
+                .Where(p => handBets[p] >= level && playerStatuses[p] != PlayerStatuses.Folded)
+                .ToList();
+
+            if (eligible.Count == 0)
+                continue;
+
+            int bestScore = eligible.Max(p => playerScores[p]);
+            var winners = eligible.Where(p => playerScores[p] == bestScore).ToList();
+
+            int share = potAmount / winners.Count;
+            int remainder = potAmount % winners.Count;
+
+            foreach (var w in winners)
+            {
+                w.tableBalance += share;
+                if (winningsByPlayer.ContainsKey(w))
+                {
+                    winningsByPlayer[w] += share;
+                }
+                else
+                {
+                    winningsByPlayer.Add(w, share);
+                }
+            }
+
+            foreach (var w in winners.Take(remainder))
+            {
+                w.tableBalance += 1;
+                winningsByPlayer[w] += 1;
+            }
+            
+            prev = level;
+        }
+
+        return winningsByPlayer;
+    }
+    
+
+    private bool BettingRound(bool preflop)
     {
         BettingRoundReset(preflop);
         var i = smallBlindIndex;
+        if (!preflop && players.Count == 2)
+        {
+            i = bigBlindIndex;
+        }
         while (true)
         {
             var player = players[i];
+            if (playerStatuses.Count(s => s.Value == PlayerStatuses.Folded) == players.Count - 1)
+            {
+                return false;
+            }
             if (playerStatuses[player] == PlayerStatuses.Folded || playerStatuses[player] == PlayerStatuses.AllIn)
             {
                 i = (i + 1) % players.Count;
-                continue;   
+                continue;
             }
-            if (playerStatuses[player] == PlayerStatuses.Checked || playerStatuses[player] == PlayerStatuses.AllIn) 
+            if (playerStatuses[player] == PlayerStatuses.Checked) 
                 break;
             Console.WriteLine(player.name + "(" + playerRoles[player] + ")" + ": ");
             var decision = Console.ReadLine();
@@ -149,6 +222,7 @@ public class Table
             }
             i = (i + 1) % players.Count;
         }
+        return true;
     }
 
     public void Reindex()
@@ -186,7 +260,7 @@ public class Table
     {
         if (preflop)
         {
-            toCall = minRaise;
+            toCall = smallBlind * 2;
             handBets.Clear();
             Reindex();
         }
@@ -195,7 +269,6 @@ public class Table
             toCall =0 ;
         }
         minRaise = smallBlind * 2;
-        roundBets.Clear();
         foreach (var player in players)
         {
             roundBets[player] = 0;
@@ -206,15 +279,16 @@ public class Table
                     case PlayerRole.SmallBlind:
                         roundBets[player] = smallBlind;
                         handBets[player] = smallBlind;
+                        player.tableBalance -= smallBlind;
                         playerStatuses[player] = PlayerStatuses.ToCall;
                         break;
                     case PlayerRole.BigBlind:
                         roundBets[player] = smallBlind * 2;
                         handBets[player] = smallBlind * 2;
+                        player.tableBalance -= smallBlind * 2;
                         playerStatuses[player] = PlayerStatuses.ToCheck;
                         break;
                     default:
-                        roundBets[player] = 0;
                         handBets[player] = 0;
                         playerStatuses[player] = PlayerStatuses.ToCall;
                         break;
@@ -234,6 +308,7 @@ public class Table
         Console.WriteLine("Pot: " + handBets.Values.Sum() + "$");
         foreach (var player in players)
         {
+            Console.WriteLine("Balance: " + player.tableBalance);
             player.SeeCards();
             var score = CheckScore(player);
             Console.WriteLine(WhatHand(score) + "\n" + score + "\n");
@@ -290,23 +365,23 @@ public class Table
 
     public string WhatHand(int x)
     {
-        if (x >= 10000000)
+        if (x >= 90000000)
             return "Royal flush";
-        if (x >= 9000000)
-            return "Straight flush";
         if (x >= 8000000)
-            return "Four of a kind";
+            return "Straight flush";
         if (x >= 7000000)
-            return "Full house";
+            return "Four of a kind";
         if (x >= 6000000)
-            return "Flush";
+            return "Full house";
         if (x >= 5000000)
-            return "Straight";
+            return "Flush";
         if (x >= 4000000)
-            return "Three of a kind";
+            return "Straight";
         if (x >= 3000000)
-            return "Two pair";
+            return "Three of a kind";
         if (x >= 2000000)
+            return "Two pair";
+        if (x >= 1000000)
             return "Pair";
         return "High card";
     }
@@ -382,7 +457,7 @@ public class Table
             var values = new HashSet<int>(group.Select(c => c.Value));
             if (royalValues.IsSubsetOf(values))
             {
-                return 10000000;
+                return 9000000;
             }
         }
 
@@ -409,7 +484,7 @@ public class Table
             return 0;
         var fourValue = four.Key;
         var kicker = groups.Where(g => g.Count() != 4).Max(g => g.Key);
-        return 8000000 + 50 * fourValue + kicker;
+        return 7000000 + 50 * fourValue + kicker;
     }
 
     public int IsFullHouse(List<Card> hand)
@@ -434,7 +509,7 @@ public class Table
 
         if (threeValue == 0 || pairValue == 0)
             return 0;
-        return 7000000 + 50 * threeValue + pairValue;
+        return 6000000 + 50 * threeValue + pairValue;
     }
 
     public int IsFlush(List<Card> hand)
@@ -443,7 +518,7 @@ public class Table
             .OrderByDescending(g => g.Count())
             .FirstOrDefault(g => g.Count() > 4);
         if (flush == null) return 0;
-        return 6000000 + IsHighCard(flush.ToList());
+        return 5000000 + IsHighCard(flush.ToList());
     }
 
     public int IsStraight(List<Card> hand)
@@ -452,7 +527,7 @@ public class Table
         if (values.Count < 5)
             return 0;
         if (new[] { 14, 2, 3, 4, 5 }.All(values.Contains))
-            return 5000005;
+            return 4000005;
         var inRow = 0;
         var highest = 0;
         for (var i = 1; i < values.Count; i++)
@@ -467,7 +542,7 @@ public class Table
         }
 
         if (highest > 0)
-            return 5000000 + highest;
+            return 4000000 + highest;
         return 0;
     }
 
@@ -486,7 +561,7 @@ public class Table
             .OrderByDescending(c => c.Value)
             .Take(2)
             .ToList();
-        return 4000000 + 10000 * threeValue + IsHighCard(kickers);
+        return 3000000 + 10000 * threeValue + IsHighCard(kickers);
     }
 
     public int IsTwoPair(List<Card> hand)
@@ -502,7 +577,7 @@ public class Table
         }
 
         if (pairHigh == 0 || pairLow == 0) return 0;
-        return 3000000 + 10000 * pairHigh + 1000 * pairLow + IsHighCard(
+        return 2000000 + 10000 * pairHigh + 1000 * pairLow + IsHighCard(
             hand.Where(g => g.Value != pairHigh && g.Value != pairLow)
                 .OrderByDescending(c => c.Value)
                 .Take(1)
@@ -516,7 +591,7 @@ public class Table
         groups = groups.OrderByDescending(g => g.Key).ToList();
         var pairHigh = groups.FirstOrDefault(g => g.Count() == 2)?.Key ?? 0;
         if (pairHigh == 0) return 0;
-        return 2000000 + 10000 * pairHigh + IsHighCard(
+        return 1000000 + 10000 * pairHigh + IsHighCard(
             hand.Where(g => g.Value != pairHigh)
                 .OrderByDescending(c => c.Value)
                 .Take(3)

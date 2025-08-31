@@ -8,3 +8,4 @@ table.AddPlayer(new Player("Szparek", table.buyIn));
 table.AddPlayer(new Player("Darek", table.buyIn));
 table.PlayRound();
 table.PlayRound();
+table.PlayRound();
