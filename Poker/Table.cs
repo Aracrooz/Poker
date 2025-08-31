@@ -57,14 +57,14 @@ public class Table
             x = BettingRound(false);
         }
         
-        Turn();
+        DrawTableCard();
         ShowTableCards();
         if (x)
         {
             x = BettingRound(false);
         }
         
-        River();
+        DrawTableCard();
         ShowTableCards();
         if (x)
         {
@@ -350,15 +350,10 @@ public class Table
     public void Flop()
     {
         for (var i = 0; i < 3; i++)
-            cards.Add(deck.Draw());
+            DrawTableCard();
     }
 
-    public void Turn()
-    {
-        cards.Add(deck.Draw());
-    }
-
-    public void River()
+    public void DrawTableCard()
     {
         cards.Add(deck.Draw());
     }

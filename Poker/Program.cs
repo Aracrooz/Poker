@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Poker;
+﻿using Poker;
 
 Table table = new Table(1000);
 table.AddPlayer(new Player("Marek", table.buyIn));
