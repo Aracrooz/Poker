@@ -19,7 +19,7 @@ public class Table
         AllIn
     }
 
-    public List<Player> players = new(5);
+    public List<Player> players = new(7);
     private Deck deck;
     public List<Card> cards = new(5);
     public int buyIn;
@@ -71,8 +71,7 @@ public class Table
             BettingRound(false);
         }
 
-        ResolveRound();
-
+        var winners = ResolveRound();
     }
 
     private Dictionary<Player, int> ResolveRound()
@@ -323,10 +322,15 @@ public class Table
 
     public void AddPlayer(Player player)
     {
-        if (players.Count > 4)
+        if (players.Count > 6)
             return;
         players.Add(player);
         roundBets.Add(player, 0);
+    }
+    
+    public void RemovePlayer(Player player)
+    {
+        players.Remove(player);
     }
 
     public void Deal()
